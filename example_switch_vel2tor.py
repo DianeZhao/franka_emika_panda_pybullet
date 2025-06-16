@@ -38,7 +38,11 @@ try:
                 targetVelocities=[0.0] * panda.dof,
                 forces=[100.0] * panda.dof  # Holding torque
             )
-            
+# sets the maximum torque the motor can apply to achieve the target velocity.
+# forces =0, the velocity command cannot work, it just falls due to grvaity
+# forces =50, when the robot arm folded, it cannot standstill again
+# forces = 100, can stand still in any configuration
+# forces = 300, harder to move
         else:
             if(not reset):
                 print("CONTROL SWITCH")
@@ -51,11 +55,7 @@ try:
             
             panda.set_torques(torques)
         
-# sets the maximum torque the motor can apply to achieve the target velocity.
-# forces =0, the velocity command cannot work, it just falls due to grvaity
-# forces =50, when the robot arm folded, it cannot standstill again
-# forces = 100, can stand still in any configuration
-# forces = 300, harder to move
+
         p.stepSimulation()
         time.sleep(1./240.)
 except KeyboardInterrupt:
