@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import numpy as np
 import pybullet as p
 import pybullet_data
@@ -16,7 +17,7 @@ def main():
     """"""
 
     # Basic Setup of environment
-    physics_client_id = p.connect(p.DIRECT)
+    physics_client_id = p.connect(p.GUI)
     p.setTimeStep(SAMPLING_RATE)
     p.setGravity(0, 0, -9.81)
 
