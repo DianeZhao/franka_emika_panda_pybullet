@@ -1,6 +1,8 @@
 import os
 import math
 import pybullet as p
+import numpy as np
+
 
 
 class PandaRobot:
@@ -25,14 +27,57 @@ class PandaRobot:
         # Set DOF according to the fact that either gripper is supplied or not and create often used joint list
         self.dof = p.getNumJoints(self.robot_id) - 1
         self.joints = range(self.dof)
+        self.tool_joint_name = "panda_joint8" #"panda_EndEffector"
+        
+        
+        # build a dict of all joints, keyed by name
+        self.joints_dict = {}
+        self.links_dict = {}
+        for i in range(p.getNumJoints(self.robot_id)):
+            info = p.getJointInfo(self.robot_id, i)
+            joint_name = info[1].decode("utf-8")
+            link_name = info[12].decode("utf-8")
+            self.joints_dict[joint_name] = info
+            self.links_dict[link_name] = info
+            
+        self.tool_idx = self.joints_dict[self.tool_joint_name][0]
+        # get the indices for the actuated joints
+        # if actuated joints are not named, we take all of the non-fixed joints
+        # self.robot_joint_indices = []
+        # if actuated_joints is None:
+        #     for joint in self.joints.values():
+        #         # joint type == 4 means a fixed joint, skip these
+        #         if joint[2] == 4:
+        #             continue
+        #         self.robot_joint_indices.append(joint[0])
+        # else:
+        #     for name in actuated_joints:
+        #         idx = self.joints[name][0]
+        #         self.robot_joint_indices.append(idx)
+        
+        
 
         # Reset Robot
         self.reset_state()
+        
+    def link_pose(self, link_idx=None):
+        """Get the pose of a particular link in the world frame.
 
+        It is the pose of origin of the link w.r.t. the world. The origin of
+        the link is the location of its parent joint.
+
+        If no link_idx is provided, defaults to that of the tool.
+        """
+        if link_idx is None:
+            link_idx = self.tool_idx
+        state = p.getLinkState(self.robot_id, link_idx, computeForwardKinematics=True)
+        pos, orn = state[4], state[5]
+        return np.array(pos), np.array(orn)
+    
     def reset_state(self):
         """"""
-        for j in range(self.dof):
-            p.resetJointState(self.robot_id, j, targetValue=0)
+        # for j in range(self.dof):
+        #     p.resetJointState(self.robot_id, j, targetValue=0)
         p.setJointMotorControlArray(bodyUniqueId=self.robot_id,
                                     jointIndices=self.joints,
                                     controlMode=p.VELOCITY_CONTROL,
@@ -95,3 +140,17 @@ class PandaRobot:
                                     jointIndices=self.joints,
                                     controlMode=p.TORQUE_CONTROL,
                                     forces=desired_torque)
+
+    def link_pose(self, link_idx=None):
+        """Get the pose of a particular link in the world frame.
+
+        It is the pose of origin of the link w.r.t. the world. The origin of
+        the link is the location of its parent joint.
+
+        If no link_idx is provided, defaults to that of the tool.
+        """
+        if link_idx is None:
+            link_idx = self.tool_idx
+        state = p.getLinkState(self.robot_id, link_idx, computeForwardKinematics=True)
+        pos, orn = state[4], state[5]
+        return np.array(pos), np.array(orn)
