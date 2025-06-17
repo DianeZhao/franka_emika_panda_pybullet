@@ -4,7 +4,8 @@ import pybullet as p
 import numpy as np
 import pinocchio as pin
 
-
+DOF=7
+URDF_PATH = "/home/danningzhao/franka_emika_panda_pybullet/panda_robot/model_description/panda.urdf"
 class PandaRobot:
     """"""
 
@@ -28,9 +29,10 @@ class PandaRobot:
         p.changeDynamics(bodyUniqueId=self.robot_id, linkIndex=4, maxJointVelocity=180 * (math.pi / 180))
         p.changeDynamics(bodyUniqueId=self.robot_id, linkIndex=5, maxJointVelocity=180 * (math.pi / 180))
         p.changeDynamics(bodyUniqueId=self.robot_id, linkIndex=6, maxJointVelocity=180 * (math.pi / 180))
-
+        # After loading URDF in PyBullet:
+        #p.changeDynamics(self.robot_id, -1, mass=0)  # Set base mass to 0
         # Set DOF according to the fact that either gripper is supplied or not and create often used joint list
-        self.dof = p.getNumJoints(self.robot_id) - 1
+        self.dof = DOF #p.getNumJoints(self.robot_id) - 1
         self.joints = range(self.dof)
         self.tool_joint_name = "panda_joint8" #
 
@@ -68,7 +70,8 @@ class PandaRobot:
         # =============================================
         # 2. PINOCCHIO KINEMATICS/DYNAMICS PART
         # =============================================
-        self.pin_model = pin.buildModelFromUrdf(panda_model) #only kinematic
+        
+        self.pin_model = pin.buildModelFromUrdf(URDF_PATH) #only kinematic
         self.pin_data = self.pin_model.createData()
         self.tool_frame_name = "panda_EndEffector"#for pinocchio
         self.tool_frame_id = self.pin_model.getFrameId(self.tool_frame_name)
@@ -76,12 +79,38 @@ class PandaRobot:
         
         
         
-    def fk_pin(self, thetalist):
+    def fk_pin(self, pos, vel):
         """Apply forward kinematics to pinocchio model
         """
-        pin.forwardKinematics(self.pin_model, self.pin_data, thetalist)
+        pos = np.array(pos)
+        vel = np.array(vel)
+        pin.forwardKinematics(self.pin_model, self.pin_data, pos, vel)
         pin.updateFramePlacements(self.pin_model, self.pin_data) 
-           
+        pin.computeAllTerms(self.pin_model, self.pin_data, pos, vel)
+        
+    def inv_dyn_pin(self, pos, vel, acc):
+        """THe pinocchio version inverse dynamics
+        INPUT should be NUMPY ARRAY
+        """
+        pos = np.array(pos)
+        vel = np.array(vel)
+        acc = np.array(acc)
+        
+        tau_inv_dyn = pin.rnea(self.pin_model, self.pin_data, pos, vel, acc)
+        return tau_inv_dyn
+    
+    def link_pose_pin(self):
+        self.ee_pose = self.pin_data.oMf[self.tool_frame_id]
+        ee_pos = self.ee_pose.translation
+        ee_ort = pin.Quaternion(self.ee_pose.rotation)
+        return ee_pos, ee_ort
+    
+    def jacobian_pin(self, pos):
+        pos = np.array(pos)
+        jacobian = pin.computeFrameJacobian(self.pin_model, self.pin_data, pos, self.tool_frame_id, pin.ReferenceFrame.LOCAL_WORLD_ALIGNED)
+        #print(jacobian)
+        return jacobian
+    
     def link_pose(self, link_idx=None):
         """Get the pose of a particular link in the world frame.
 
