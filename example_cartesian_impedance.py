@@ -4,6 +4,8 @@ import time
 import numpy as np
 from panda_robot import PandaRobot
 from pyb_utils.frame import debug_frame_world
+import pinocchio as pin
+
 
 # Initialize simulation
 p.connect(p.GUI)
@@ -34,6 +36,8 @@ for j, pos in zip(panda.joints, initial_positions):
     
 r,q = panda.link_pose()
 debug_frame_world(0.2, list(r), orientation=q, line_width=3)
+
+
 # =============================================
 # 2. POSITION CONTROL PHASE (FIRST 3 SECONDS)
 # =============================================
@@ -51,11 +55,15 @@ p.setJointMotorControlArray(
 # =============================================
 switch_time = 1.0  # Switch after 3 seconds
 start_time = time.time()
+reset = False
 
 try:
     while True:
         current_time = time.time() - start_time
         
+        pos, vel = panda.get_position_and_velocity()
+        desired_acc = [0.0] * panda.dof
+        panda.fk_pin(pos)
         # Position control phase
         if current_time < switch_time:
             pass  # Already set up above
@@ -63,8 +71,17 @@ try:
         # Torque control phase (after switch_time)
         else:
             # First disable position control
-            if current_time - switch_time < 0.001:  # Only do this once
+            # if current_time - switch_time < 0.001:  # Only do this once
+            #     print("SWITCHING TO TORQUE CONTROL!")
+            #     p.setJointMotorControlArray(
+            #         bodyUniqueId=panda.robot_id,
+            #         jointIndices=panda.joints,
+            #         controlMode=p.VELOCITY_CONTROL,
+            #         forces=[0.0] * panda.dof  # Disable all motors
+            #     )
+            if current_time > switch_time and not reset:  # Only do this once
                 print("SWITCHING TO TORQUE CONTROL!")
+                reset = True
                 p.setJointMotorControlArray(
                     bodyUniqueId=panda.robot_id,
                     jointIndices=panda.joints,
@@ -73,9 +90,12 @@ try:
                 )
             
             # Compute gravity compensation torques
-            pos, vel = panda.get_position_and_velocity()
-            desired_acc = [0.0] * panda.dof
+            # pos, vel = panda.get_position_and_velocity()
+            # desired_acc = [0.0] * panda.dof
             torques = panda.calculate_inverse_dynamics(pos, vel, desired_acc)
+            # print("pybullet", torques)
+            # torques = panda.inv_dyn_pin(pos, vel, desired_acc)
+            # print("pinocchio", torques)
             
             # Apply torques
             panda.set_torques(torques)
