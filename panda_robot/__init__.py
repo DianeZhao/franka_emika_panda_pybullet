@@ -1,2 +1,3 @@
 from panda_robot.panda_robot import PandaRobot
 from panda_robot.torque import computed_torque_ftip
+from panda_robot.torque import KalmanFilter
