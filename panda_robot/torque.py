@@ -1,5 +1,6 @@
 import numpy as np
 import pinocchio as pin
+from scipy.linalg import block_diag
 
 cartesian_stiffness_target_array = np.array([300, 300, 300, 50, 50, 50])
 cartesian_stiffness_target = np.diag(cartesian_stiffness_target_array)
@@ -126,3 +127,68 @@ def pseudo_inverse(M, damped=True):
     M_pinv = Vt.T @ S_inv_mat @ U.T
     
     return M_pinv
+
+
+# =============================================
+# 2. Kalman Filter Matrix Definitions
+# =============================================
+
+class KalmanFilter:
+    def __init__(self, dt, pos, vel):
+        # dt = 1.0/240.0  # Timestep matching simulation
+        state_dim = 14   # 7 positions + 7 velocities
+        measurement_dim = 7  # Only positions measured
+
+        # State Transition Matrix (A)
+        A = np.eye(state_dim)
+        A[:7, 7:] = np.eye(7) * dt  # q_next = q_prev + v_prev*dt
+
+        # Process Noise Covariance (Q)
+        process_noise_pos = 1e-6  # Trust position dynamics
+        process_noise_vel = 1e-5  # Less trust in velocity
+        Q = block_diag(
+            np.eye(7) * process_noise_pos,
+            np.eye(7) * process_noise_vel
+        )
+
+        # Measurement Matrix (H) - Measures positions only
+        H = np.hstack([np.eye(7), np.zeros((7, 7))])
+
+        # Measurement Noise Covariance (R)
+        sensor_noise = 1e-4  # From sensor characterization
+        R = np.eye(7) * sensor_noise
+
+        # Initial State (x0)
+        # q_meas, v_meas = panda.get_position_and_velocity()
+        x0 = np.concatenate([pos, vel])
+
+        # Initial Covariance (P0)
+        position_uncertainty = 0.1  # Initial position std dev (rad)
+        velocity_uncertainty = 1.0   # Initial velocity std dev (rad/s)
+        P0 = block_diag(
+            np.eye(7) * position_uncertainty**2,
+            np.eye(7) * velocity_uncertainty**2
+        )
+        
+        self.A = A  # State transition matrix
+        self.H = H  # Measurement matrix
+        self.Q = Q  # Process noise covariance
+        self.R = R  # Measurement noise covariance
+        self.x = x0  # Initial state estimate
+        self.P = P0  # Initial error covariance
+        
+
+    def predict(self):
+        """Predict step"""
+        self.x = self.A @ self.x
+        self.P = self.A @ self.P @ self.A.T + self.Q
+        return self.x
+
+    def update(self, z):
+        """Update step with measurement z"""
+        S = self.H @ self.P @ self.H.T + self.R
+        K = self.P @ self.H.T @ np.linalg.inv(S)  # Kalman gain
+        
+        self.x = self.x + K @ (z - self.H @ self.x)
+        self.P = (np.eye(len(self.x)) - K @ self.H) @ self.P
+        return self.x
