@@ -2,7 +2,7 @@ import os
 import math
 import pybullet as p
 import numpy as np
-
+import pinocchio as pin
 
 
 class PandaRobot:
@@ -10,6 +10,11 @@ class PandaRobot:
 
     def __init__(self, include_gripper):
         """"""
+        
+        
+        # =============================================
+        # 1. PYBULLET SIMULATION PART
+        # =============================================
         p.setAdditionalSearchPath(os.path.dirname(__file__) + '/model_description')
         panda_model = "panda_with_gripper.urdf" if include_gripper else "panda.urdf"
         self.robot_id = p.loadURDF(panda_model, useFixedBase=True, flags=p.URDF_USE_SELF_COLLISION)
@@ -27,7 +32,8 @@ class PandaRobot:
         # Set DOF according to the fact that either gripper is supplied or not and create often used joint list
         self.dof = p.getNumJoints(self.robot_id) - 1
         self.joints = range(self.dof)
-        self.tool_joint_name = "panda_joint8" #"panda_EndEffector"
+        self.tool_joint_name = "panda_joint8" #
+
         
         
         # build a dict of all joints, keyed by name
@@ -55,11 +61,27 @@ class PandaRobot:
         #         idx = self.joints[name][0]
         #         self.robot_joint_indices.append(idx)
         
-        
-
         # Reset Robot
         self.reset_state()
         
+        
+        # =============================================
+        # 2. PINOCCHIO KINEMATICS/DYNAMICS PART
+        # =============================================
+        self.pin_model = pin.buildModelFromUrdf(panda_model) #only kinematic
+        self.pin_data = self.pin_model.createData()
+        self.tool_frame_name = "panda_EndEffector"#for pinocchio
+        self.tool_frame_id = self.pin_model.getFrameId(self.tool_frame_name)
+        
+        
+        
+        
+    def fk_pin(self, thetalist):
+        """Apply forward kinematics to pinocchio model
+        """
+        pin.forwardKinematics(self.pin_model, self.pin_data, thetalist)
+        pin.updateFramePlacements(self.pin_model, self.pin_data) 
+           
     def link_pose(self, link_idx=None):
         """Get the pose of a particular link in the world frame.
 
