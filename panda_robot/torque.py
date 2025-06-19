@@ -2,9 +2,10 @@ import numpy as np
 import pinocchio as pin
 from scipy.linalg import block_diag
 
-cartesian_stiffness_target_array = np.array([300, 300, 300, 50, 50, 50])
+# cartesian_stiffness_target_array = np.array([300, 300, 300, 50, 50, 50])
+cartesian_stiffness_target_array = np.array([30, 30, 30, 50, 50, 50])
 cartesian_stiffness_target = np.diag(cartesian_stiffness_target_array)
-cartesian_damping_target_array = 2.0 * np.sqrt(cartesian_stiffness_target_array)
+cartesian_damping_target_array = 2 * np.sqrt(cartesian_stiffness_target_array)
 cartesian_damping_target = np.diag(cartesian_damping_target_array)
 nullspace_stiffness = 0.01
 q_d_nullspace = None #can be read from yaml, if no, then read from initial robot state
@@ -21,9 +22,13 @@ def computed_torque_ftip(robot_model, r_d, q_d, pos, vel, q_d_nullspace):
     # =============================================
     r,q=robot_model.link_pose_pin()
     error_pos = r - r_d
+    # print(r)
+    # print(r_d)
+    #print(error_pos)
     #print("q",q,q_d)
     error_rot_base = compute_orientation_error(q, q_d, robot_model.ee_pose) 
     error_pos = error_pos.reshape(3, 1)
+    #print("pos_e",error_pos)
     error_rot_base = error_rot_base.reshape(3, 1)
     error = np.vstack((error_pos, error_rot_base))
     #print("error",error)
