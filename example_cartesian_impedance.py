@@ -48,6 +48,9 @@ for j, pos in zip(panda.joints, initial_positions):
     
 r_d,q_d = panda.link_pose()
 debug_frame_world(0.2, list(r_d), orientation=q_d, line_width=3)
+##JUST IN ORDER TO GET THE PINOCCHIO QUTERNION
+panda.fk_pin(initial_positions,[0.0] * panda.dof)
+r_d,q_d = panda.link_pose_pin()
 #print(q_d)#[ 0.91244918 -0.40904623  0.00990046 -0.00443833]
 
 # # Convert to Pinocchio
@@ -62,7 +65,7 @@ debug_frame_world(0.2, list(r_d), orientation=q_d, line_width=3)
 # # Now create Pinocchio quaternion
 # q_d_pin = pin.Quaternion(*q_d_reordered)
 # print(q_d_pin)  # Correctly shows (x,y,z,w) = -0.409046 0.00990046 -0.00443833 0.912449
-
+#q_d = [0.91244918, -0.40904623, 0.00990046, -0.00443833]  # [w,x,y,z]
 
 # =============================================
 # 2. POSITION CONTROL PHASE (FIRST 3 SECONDS)
@@ -101,6 +104,7 @@ try:
         current_time = time.time() - start_time
         
         pos, vel = panda.get_position_and_velocity()
+        #pybullet return numpy
         #print("vel",vel)
         desired_acc = [0.0] * panda.dof
         panda.fk_pin(pos,vel)
@@ -124,7 +128,7 @@ try:
             # #print("pybullet", torques)
             # torques = panda.inv_dyn_pin(pos, vel, desired_acc)
             #print("pinocchio", torques)
-            r_d,q_d = panda.link_pose_pin()
+            #r_d,q_d = panda.link_pose_pin()
             pass  # Already set up above
         
         # Torque control phase (after switch_time)
@@ -153,6 +157,7 @@ try:
             # desired_acc = [0.0] * panda.dof
             dyn_torques = panda.calculate_inverse_dynamics(pos, vel, desired_acc)
             #print(r_d,q_d) #(x,y,z,w) =    0.912449   -0.409046  0.00989627 -0.00443645
+            print("r_d outside",r_d)
             task_torques = computed_torque_ftip(panda, r_d, q_d, pos, vel, np.array(initial_positions))
             #print("pybullet", dyn_torques)
             # torques = panda.inv_dyn_pin(pos, vel, desired_acc)
