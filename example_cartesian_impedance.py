@@ -48,9 +48,10 @@ for j, pos in zip(panda.joints, initial_positions):
     
 r_d,q_d = panda.link_pose()
 debug_frame_world(0.2, list(r_d), orientation=q_d, line_width=3)
+r_d.flags.writeable = False  # Make immutable
 ##JUST IN ORDER TO GET THE PINOCCHIO QUTERNION
 panda.fk_pin(initial_positions,[0.0] * panda.dof)
-r_d,q_d = panda.link_pose_pin()
+_,q_d = panda.link_pose_pin()
 #print(q_d)#[ 0.91244918 -0.40904623  0.00990046 -0.00443833]
 
 # # Convert to Pinocchio
@@ -157,19 +158,19 @@ try:
             # desired_acc = [0.0] * panda.dof
             dyn_torques = panda.calculate_inverse_dynamics(pos, vel, desired_acc)
             #print(r_d,q_d) #(x,y,z,w) =    0.912449   -0.409046  0.00989627 -0.00443645
-            print("r_d outside",r_d)
+            #print("r_d outside",r_d)
             task_torques = computed_torque_ftip(panda, r_d, q_d, pos, vel, np.array(initial_positions))
-            #print("pybullet", dyn_torques)
-            # torques = panda.inv_dyn_pin(pos, vel, desired_acc)
-            #print("task_torque", task_torques.flatten())
-            #At first iteration
-            # pybullet [3.0814596433944182e-18, -23.428008753319755, 7.378079251313554e-12, 21.943791412584993, 9.209060387693747e-12, 1.235640858425368, 4.865011792986825e-33]
-            # pinocchio [ 3.88206111e-13  1.39064904e-08 -5.37094574e-13  2.00786088e-08
-            # -3.26213842e-14 -5.91074187e-09  2.55575426e-13]
+            # #print("pybullet", dyn_torques)
+            # # torques = panda.inv_dyn_pin(pos, vel, desired_acc)
+            # #print("task_torque", task_torques.flatten())
+            # #At first iteration
+            # # pybullet [3.0814596433944182e-18, -23.428008753319755, 7.378079251313554e-12, 21.943791412584993, 9.209060387693747e-12, 1.235640858425368, 4.865011792986825e-33]
+            # # pinocchio [ 3.88206111e-13  1.39064904e-08 -5.37094574e-13  2.00786088e-08
+            # # -3.26213842e-14 -5.91074187e-09  2.55575426e-13]
 
             total_torques = dyn_torques + task_torques.flatten()
             
-            # Apply torques
+            # # Apply torques
             panda.set_torques(total_torques)
         
         p.stepSimulation()
