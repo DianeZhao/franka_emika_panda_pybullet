@@ -49,6 +49,7 @@ for j, pos in zip(panda.joints, initial_positions):
 r_d,q_d = panda.link_pose()
 debug_frame_world(0.2, list(r_d), orientation=q_d, line_width=3)
 r_d.flags.writeable = False  # Make immutable
+#NOTE: the returned r and q are reference, even if we don't read them again in the main loop, it changes itself.
 ##JUST IN ORDER TO GET THE PINOCCHIO QUTERNION
 panda.fk_pin(initial_positions,[0.0] * panda.dof)
 _,q_d = panda.link_pose_pin()
