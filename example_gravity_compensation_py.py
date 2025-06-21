@@ -54,7 +54,8 @@ r_d.flags.writeable = False  # Make immutable
 panda.fk_pin(initial_positions,[0.0] * panda.dof)
 _,q_d = panda.link_pose_pin()
 #print(q_d)#[ 0.91244918 -0.40904623  0.00990046 -0.00443833]
-
+pin_gravity = pin.Model.gravity # For Pinocchio
+print(f"Pinocchio gravity: {pin_gravity}")
 # # Convert to Pinocchio
 # q_d_pin = pin.Quaternion(*q_d)  # Direct conversion
 # print(q_d_pin)
