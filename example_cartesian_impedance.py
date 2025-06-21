@@ -55,6 +55,17 @@ panda.fk_pin(initial_positions,[0.0] * panda.dof)
 _,q_d = panda.link_pose_pin()
 #print(q_d)#[ 0.91244918 -0.40904623  0.00990046 -0.00443833]
 
+# =============================================
+# 1.1 MANUALLY SET THE MASS OF JOINT EE TO SMALL VALUE
+# =============================================
+joint_index = 7
+# Method 1: Set near-zero mass (recommended)
+p.changeDynamics(
+    panda.robot_id, 
+    joint_index,
+    mass=1e-6,  # Minimum practical mass
+    localInertiaDiagonal=[1e-9, 1e-9, 1e-9]  # Tiny inertia
+)
 # # Convert to Pinocchio
 # q_d_pin = pin.Quaternion(*q_d)  # Direct conversion
 # print(q_d_pin)
@@ -157,12 +168,12 @@ try:
             # Compute gravity compensation torques
             # pos, vel = panda.get_position_and_velocity()
             # desired_acc = [0.0] * panda.dof
-            dyn_torques = panda.calculate_inverse_dynamics(pos, vel, desired_acc)
+            #dyn_torques = panda.calculate_inverse_dynamics(pos, vel, desired_acc)
             #print(r_d,q_d) #(x,y,z,w) =    0.912449   -0.409046  0.00989627 -0.00443645
             #print("r_d outside",r_d)
             task_torques = computed_torque_ftip(panda, r_d, q_d, pos, vel, np.array(initial_positions))
             # #print("pybullet", dyn_torques)
-            # # torques = panda.inv_dyn_pin(pos, vel, desired_acc)
+            dyn_torques = panda.inv_dyn_pin(pos, vel, desired_acc)
             # #print("task_torque", task_torques.flatten())
             # #At first iteration
             # # pybullet [3.0814596433944182e-18, -23.428008753319755, 7.378079251313554e-12, 21.943791412584993, 9.209060387693747e-12, 1.235640858425368, 4.865011792986825e-33]
